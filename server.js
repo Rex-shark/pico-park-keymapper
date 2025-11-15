@@ -1,7 +1,12 @@
 // WebSocket server for pico-park-keymapper (目前僅 log 鍵盤指令，未實際觸發鍵盤)
 import { WebSocketServer } from 'ws';
+import { execFile } from 'child_process';
 
 const PORT = 5174; // separate from Vite dev server
+
+// AutoHotkey v2 執行路徑與腳本路徑（請依實際環境調整）
+const AHK_PATH = 'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe';
+const AHK_SCRIPT = 'D:\\key-mapper\\press.ahk';
 
 /**
  * rooms: {
@@ -91,7 +96,10 @@ wss.on('connection', (ws, request) => {
           const { command } = msg;
           const mapped = mapCommandToKey(userId, command);
 
-          // 目前僅 log，不觸發實際鍵盤事件
+          if (mapped) {
+            triggerKey(mapped);
+          }
+
           log(`玩家${userId} command=${command} mappedKey=${mapped || '無對應'}`);
 
           if (host && host.readyState === ws.OPEN) {
@@ -139,6 +147,18 @@ function mapCommandToKey(userId, command) {
   };
   const table = mappings[String(userId)];
   return table ? table[command] : undefined;
+}
+
+function triggerKey(mappedKey) {
+  // 這裡使用 AutoHotkey 腳本實際模擬按鍵
+  // 若 AutoHotkey 或腳本路徑錯誤，會在 server console 顯示錯誤但不會中斷服務
+  log('[key] triggerKey:', mappedKey);
+
+  execFile(AHK_PATH, [AHK_SCRIPT, mappedKey], (error) => {
+    if (error) {
+      log('[key] AutoHotkey 執行失敗:', error.message || error);
+    }
+  });
 }
 
 log(`WebSocket server listening on ws://localhost:${PORT}/socket`);
