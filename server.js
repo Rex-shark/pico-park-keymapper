@@ -156,7 +156,14 @@ function triggerKey(mappedKey) {
 
   execFile(AHK_PATH, [AHK_SCRIPT, mappedKey], (error) => {
     if (error) {
+      // 加強錯誤資訊，協助偵錯 EACCES / ENOENT 等問題
       log('[key] AutoHotkey 執行失敗:', error.message || error);
+      if (error.code === 'EACCES') {
+        log('[key] 提示: EACCES 可能是權限問題，請嘗試以下步驟:\n' +
+            '  1. 以系統管理員身分執行 `node server.js` 或 IDE。\n' +
+            '  2. 確認 AutoHotkey 可執行檔路徑是否正確，並可在命令提示字元中直接執行：\n' +
+            '     """""C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe" "D:\\key-mapper\\press.ahk" test"""""');
+      }
     }
   });
 }
